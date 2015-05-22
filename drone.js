@@ -10,12 +10,6 @@ pubnub = PUBNUB.init({
   subscribe_key : 'demo'
 });
 
-pubnub.publish({                                     
-  channel: "pn-drone",
-  message: "Double Networks!!",
-  callback: function(m){ console.log(m) }
-});
-
 pubnub.subscribe({
   channel: 'pn-drone',
   message: function(message) {
