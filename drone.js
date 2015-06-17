@@ -2,9 +2,8 @@
 // telnet 192.168.1.3
 // network name is dronefi
 // ./bin/node drone.js
-// killall udhcpd; iwconfig ath0 mode managed essid dronefi; ifconfig ath0 192.168.1.3 netmask 255.255.255.0 up; route add default gw 192.168.1.1; sleep 5;
-// var http = require('http-debug').http;
-// var https = require('http-debug').https; 
+// ./bin/node --expose_gc drone.js #better
+// killall udhcpd; iwconfig ath0 mode managed essid dronefi; ifconfig ath0 192.168.1.3 netmask 255.255.255.0 up; route add default gw 192.168.1.1; sleep 5; /sbin/udhcpc -i ath0;
 
 // router must auto assign ip using dhpc
 // /sbin/udhcpc -i ath0
@@ -17,26 +16,12 @@
 
 // http://www.msh-tools.com/ardrone/ARDrone_Developer_Guide.pdf
  
-// http.debug = 2;
-/*
-var exec = require('child_process').exec;
-exec("killall udhcpd; iwconfig ath0 mode managed essid dronefi;" + 
-     "ifconfig ath0 192.168.1.3 netmask 255.255.255.0 up;" + 
-     "route add default gw 192.168.1.1;" +
-     "sleep 5;", function (error, stdout, stderr) {
-  console.log('done')
-  console.log(stderr)
-  console.log(stdout);
-
-  console.log('trying pubnub');
-});
-
-console.log ('config wifi');
-*/
-
 var PUBNUB = require('pubnub');
+var arDrone = require('ar-drone');
 
-console.log('starting pubnub')
+var client  = arDrone.createClient({
+  ip: '192.168.1.78'
+});
 
 pubnub = PUBNUB.init({     
   origin: '54.236.3.173',
@@ -56,18 +41,31 @@ function pub() {
   })
 }
 
-var arDrone = require('ar-drone');
+var canCall = true;
+var publishData = function(data) {
 
-var client  = arDrone.createClient({
-  ip: '192.168.1.78'
-});
+  if (!canCall) return;
+
+  setTimeout(function() {
+    canCall = true;
+  }, 1000);
+
+  pubnub.publish({                                  
+    channel: "pubnub_drone_stream",
+    message: data
+  });
+   
+};
+
+client.on('navdata', publishData);
 
 pubnub.subscribe({
-  channel: 'pubnub_drone',
+  channel: 'pubnub_drone_control',
+  connect: pub,
   message: function(message) {
 
-    console.log('got message')
-    console.log(message)
+    // console.log('got message')
+    // console.log(message)
     
     if(message == "takeoff") {
       client.takeoff();
@@ -114,3 +112,23 @@ process.on("SIGINT", function() {
     process.kill(process.pid);                                                                       
   }, 1000);                                                                                          
 });
+
+// https://github.com/TooTallNate/ar-drone-socket.io-proxy/blob/master/receiver.js
+// DEBUG - run with `--expose_gc`
+if ('function' == typeof gc) {
+
+  // the AR.Drone keeps getting a "Killed" message when getting the TCP video
+  // stream... Attempt to forcefully free memory once per second...
+
+  var os = require('os');
+  setInterval(function () {
+    console.log('running gc()...');
+    gc();
+
+    var mem = process.memoryUsage();
+    mem.freemem = os.freemem();
+    mem.totalmem = os.totalmem();
+    mem.freePercent = mem.freemem / mem.totalmem * 100;
+    console.log('memory usage:', mem);
+  }, 500);
+}

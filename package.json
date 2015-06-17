@@ -10,6 +10,6 @@
   "license": "ISC",
   "dependencies": {
     "ar-drone": "^0.3.3",
-    "pubnub": "^3.7.11"
+    "pubnub": "~3.6.4"
   }
 }
