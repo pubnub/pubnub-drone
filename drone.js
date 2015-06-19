@@ -3,7 +3,9 @@
 // network name is dronefi
 // ./bin/node drone.js
 // ./bin/node --expose_gc drone.js #better
-// killall udhcpd; iwconfig ath0 mode managed essid dronefi; ifconfig ath0 192.168.1.3 netmask 255.255.255.0 up; route add default gw 192.168.1.1; sleep 5; /sbin/udhcpc -i ath0;
+// killall udhcpd; iwconfig ath0 mode managed essid dronefi; ifconfig ath0 192.168.1.3 netmask 255.255.255.0 up; route add default gw 192.168.1.1; /sbin/udhcpc -i ath0;
+
+// killall udhcpd; iwconfig ath0 mode managed essid dronefi; /sbin/udhcpc -i ath0; sleep 5; route add default gw 192.168.1.1;
 
 // router must auto assign ip using dhpc
 // /sbin/udhcpc -i ath0
@@ -15,13 +17,16 @@
 // https://github.com/daraosn/ardrone-wpa2/issues/1
 
 // http://www.msh-tools.com/ardrone/ARDrone_Developer_Guide.pdf
- 
 var PUBNUB = require('pubnub');
 var arDrone = require('ar-drone');
+var os = require('os');
 
 var client  = arDrone.createClient({
   ip: '192.168.1.78'
 });
+
+// client.config('general:navdata_demo', 'FALSE');
+client.config('general:navdata_options', 777060865);
 
 pubnub = PUBNUB.init({     
   origin: '54.236.3.173',
@@ -42,18 +47,36 @@ function pub() {
 }
 
 var canCall = true;
-var publishData = function(data) {
+var publishData = function(droneData) {
 
-  if (!canCall) return;
+  // console.log('publishdata ', canCall)
+
+  if (!canCall) { return };
 
   setTimeout(function() {
     canCall = true;
   }, 1000);
 
+  var mem = process.memoryUsage();
+  mem.freemem = os.freemem();
+  mem.totalmem = os.totalmem();
+  mem.freePercent = mem.freemem / mem.totalmem * 100;
+
   pubnub.publish({                                  
     channel: "pubnub_drone_stream",
-    message: data
+    message: {
+      process: mem,
+      drone: droneData
+    },
+    callback: function(){
+      console.log('published');
+    },
+    error: function(err) {
+      console.log(err);
+    }
   });
+
+  canCall = false;
    
 };
 
@@ -91,6 +114,14 @@ pubnub.subscribe({
       client.right(.2);
     }
 
+    if(message == "front") {
+      client.front(.2);
+    }
+
+    if(message == "back") {
+      client.back(.2);
+    }
+
     if(message == "up") {
       client.up(.2);
     }
@@ -104,6 +135,7 @@ pubnub.subscribe({
     }
 
   }
+
 });
 
 process.on("SIGINT", function() {                                                                    
@@ -117,18 +149,11 @@ process.on("SIGINT", function() {
 // DEBUG - run with `--expose_gc`
 if ('function' == typeof gc) {
 
-  // the AR.Drone keeps getting a "Killed" message when getting the TCP video
+  // the AR.Drone keeps getting a "Killed" message
   // stream... Attempt to forcefully free memory once per second...
-
-  var os = require('os');
   setInterval(function () {
-    console.log('running gc()...');
+    console.log('clean up garbage')
     gc();
-
-    var mem = process.memoryUsage();
-    mem.freemem = os.freemem();
-    mem.totalmem = os.totalmem();
-    mem.freePercent = mem.freemem / mem.totalmem * 100;
-    console.log('memory usage:', mem);
   }, 500);
+
 }

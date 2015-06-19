@@ -1,0 +1,184 @@
+
+<html>
+  <head>
+
+    <link rel="icon" type="image/png" href="/static/images/structure/favicon.png">
+    
+  <title>Realtime Map - EON Realtime Dashboards</title>
+
+  <link href='http://fonts.googleapis.com/css?family=Roboto:400,400italic,500,500italic,700,700italic,900,900italic,300italic,300' rel='stylesheet' type='text/css'>
+  <link href='http://fonts.googleapis.com/css?family=Roboto+Slab:400,700,300,100' rel='stylesheet' type='text/css'>
+  <link rel="stylesheet" href="/static/css/demos/eon/assets/plugins/bootstrap/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/static/css/demos/eon/assets/plugins/font-awesome/css/font-awesome.css">
+  <link id="theme-style" rel="stylesheet" href="/static/css/demos/eon/assets/css/styles.css">
+
+  <link type="text/css" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/tomorrow.min.css"></link>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/highlight.min.js"></script>
+
+  <style>
+  body {
+    margin: 0;
+    /*padding: 0px 100px;*/
+  }
+  .map {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    z-index: 1;
+  }
+  .chart {
+    position: absolute;
+    z-index: 2;
+    background-color: white;
+    opacity: .8;
+    width: 30%;
+    left: 70%;
+    height: 190px;
+  }
+  .gauge {
+    height: 100px;
+  }
+  </style>
+
+
+  <!-- ### EON -->
+
+  <script type="text/javascript" src="http://pubnub.github.io/eon/lib/eon.js"></script>
+  <link type="text/css" rel="stylesheet" href="http://pubnub.github.io/eon/lib/eon.css" />
+
+  <!-- ### /EON -->
+
+  </head>
+  <body>
+
+    <div id='map' class="map"></div>
+
+    <script>
+
+      function getNonZeroRandomNumber(){
+        var random = Math.floor(Math.random()*199) - 99;
+        if(random==0) return getNonZeroRandomNumber();
+        return random;
+      }
+
+      var channel = 'pubnub_drone_stream';
+
+      eon.map({
+        id: 'map',
+        mb_token: 'pk.eyJ1IjoiaWFuamVubmluZ3MiLCJhIjoiZExwb0p5WSJ9.XLi48h-NOyJOCJuu1-h-Jg',
+        mb_id: 'ianjennings.mfoamn2k',
+        channel: 'pubnub_drone_stream',
+        connect: function(){
+          console.log('woop woop')
+        },
+        transform: function(data) {
+
+          console.log('map cb')
+          console.log(data);
+
+          return [
+            { latlng: [data.drone.gps.latitude, data.drone.gps.longitude] }
+          ];
+
+        }
+      });
+
+    </script>
+
+
+    <div id="velocity" class="chart"></div>
+    <script>
+      eon.chart({
+        channel: "pubnub_drone_stream",
+        generate: {
+          bindto: '#velocity',
+        },
+        flow: true,
+        limit: 500,
+        transform: function(data) {
+          
+          return {
+            columns: [
+              ['X', data.drone.demo.velocity.x],
+              ['Y', data.drone.demo.velocity.y],
+              ['Z', data.drone.demo.velocity.z]
+            ]
+          }
+
+        }
+      });
+    </script>
+
+    <div id="elevation" class="chart"></div>
+    <script>
+      eon.chart({
+        channel: "pubnub_drone_stream",
+        generate: {
+          bindto: '#elevation',
+        },
+        flow: true,
+        limit: 500,
+        transform: function(data) {
+          
+          return {
+            columns: [
+              ['Elevation (m)', data.drone.gps.elevation]
+            ]
+          }
+
+        }
+      });
+    </script>
+
+    <div id="memory" class="chart"></div>
+    <script>
+      eon.chart({
+        channel: "pubnub_drone_stream",
+        generate: {
+          bindto: '#memory',
+        },
+        flow: true,
+        limit: 500,
+        transform: function(data) {
+          
+          return {
+            columns: [
+              ['Free Memory (%)', data.process.freePercent]
+            ]
+          }
+
+        }
+      });
+    </script>
+
+
+
+    <div id="battery" class="chart gauge"></div>
+    <script>
+      eon.chart({
+        channel: "pubnub_drone_stream",
+        generate: {
+          bindto: '#battery',
+          data: {
+            type: 'gauge'
+          },
+          gauge: {
+            units: 'Battery Left'
+          }
+        },
+        transform: function(data) {
+          
+          return {
+
+            columns: [
+              ['Battery (%)', data.drone.demo.batteryPercentage]
+            ]
+
+          }
+
+        }
+      });
+    </script>
+
+  </body>
+</html>
