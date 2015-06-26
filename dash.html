@@ -40,7 +40,6 @@
   }
   </style>
 
-
   <!-- ### EON -->
 
   <script type="text/javascript" src="http://pubnub.github.io/eon/lib/eon.js"></script>
@@ -55,6 +54,24 @@
 
     <script>
 
+  L.RotatedMarker = L.Marker.extend({
+    options: { angle: 0 },
+    _setPos: function(pos) {
+      L.Marker.prototype._setPos.call(this, pos);
+      if (L.DomUtil.TRANSFORM) {
+        // use the CSS transform rule if available
+        this._icon.style[L.DomUtil.TRANSFORM] += ' rotate(' + this.options.angle + 'deg)';
+      } else if (L.Browser.ie) {
+        // fallback for IE6, IE7, IE8
+        var rad = this.options.angle * L.LatLng.DEG_TO_RAD,
+        costheta = Math.cos(rad),
+        sintheta = Math.sin(rad);
+        this._icon.style.filter += ' progid:DXImageTransform.Microsoft.Matrix(sizingMethod=\'auto expand\', M11=' +
+          costheta + ', M12=' + (-sintheta) + ', M21=' + sintheta + ', M22=' + costheta + ')';
+      }
+    }
+  });
+
       function getNonZeroRandomNumber(){
         var random = Math.floor(Math.random()*199) - 99;
         if(random==0) return getNonZeroRandomNumber();
@@ -63,11 +80,19 @@
 
       var channel = 'pubnub_drone_stream';
 
-      eon.map({
+      var mapbox = eon.map({
         id: 'map',
         mb_token: 'pk.eyJ1IjoiaWFuamVubmluZ3MiLCJhIjoiZExwb0p5WSJ9.XLi48h-NOyJOCJuu1-h-Jg',
         mb_id: 'ianjennings.mfoamn2k',
         channel: 'pubnub_drone_stream',
+        rotate: true,
+        marker: function (latlng, data) {
+
+          var marker = new L.RotatedMarker(latlng);
+
+          return marker;
+
+        },
         connect: function(){
           console.log('woop woop')
         },
@@ -76,17 +101,29 @@
           console.log('map cb')
           console.log(data);
 
-          return [
-            { latlng: [data.drone.gps.latitude, data.drone.gps.longitude] }
-          ];
+            return [
+              { latlng: [data.drone.gps.latitude, data.drone.gps.longitude] }
+            ];
 
         }
       });
 
+      mapbox.on('click', function(e) {
+
+        PUBNUB.publish({
+          channel: 'pubnub_drone_waypoint',
+          message: {
+            lat: e.latlng.lat,
+            lng: e.latlng.lng
+          }
+        });
+
+      });
+
     </script>
 
-
     <div id="velocity" class="chart"></div>
+
     <script>
       eon.chart({
         channel: "pubnub_drone_stream",
@@ -97,19 +134,20 @@
         limit: 500,
         transform: function(data) {
           
-          return {
-            columns: [
-              ['X', data.drone.demo.velocity.x],
-              ['Y', data.drone.demo.velocity.y],
-              ['Z', data.drone.demo.velocity.z]
-            ]
-          }
+            return {
+              columns: [
+                ['X', data.drone.demo.velocity.x],
+                ['Y', data.drone.demo.velocity.y],
+                ['Z', data.drone.demo.velocity.z]
+              ]
+            }
 
         }
       });
     </script>
 
     <div id="elevation" class="chart"></div>
+    
     <script>
       eon.chart({
         channel: "pubnub_drone_stream",
@@ -131,6 +169,7 @@
     </script>
 
     <div id="memory" class="chart"></div>
+
     <script>
       eon.chart({
         channel: "pubnub_drone_stream",
@@ -150,8 +189,6 @@
         }
       });
     </script>
-
-
 
     <div id="battery" class="chart gauge"></div>
     <script>

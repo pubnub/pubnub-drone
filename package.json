@@ -10,6 +10,7 @@
   "license": "ISC",
   "dependencies": {
     "ar-drone": "^0.3.3",
+    "node-vincenty": "0.0.6",
     "pubnub": "~3.6.4"
   }
 }
