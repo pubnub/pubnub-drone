@@ -14,31 +14,6 @@
   <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
 
-  <style>
-  body {
-    margin: 0;
-    /*padding: 0px 100px;*/
-  }
-  .map {
-    width: 100%;
-    height: 100%;
-    position: absolute;
-    z-index: 1;
-  }
-  .chart {
-    position: absolute;
-    z-index: 2;
-    background-color: white;
-    opacity: .8;
-    width: 30%;
-    left: 70%;
-    height: 190px;
-  }
-  .gauge {
-    height: 100px;
-  }
-  </style>
-
   <!-- ### EON -->
 
   <script type="text/javascript" src="http://pubnub.github.io/eon/lib/eon.js"></script>
@@ -46,43 +21,99 @@
 
   <!-- ### /EON -->
 
+  <style>
+  body {
+    margin: 0;
+    /*padding: 0px 100px;*/
+  }
+  .map {
+    width: 100%;
+    height: 350px;
+  }
+  .chart {
+    position: absolute;
+    z-index: 2;
+    background-color: white;
+    height: 190px;
+  }
+  .gauge {
+    height: 100px;
+  }
+  </style>
+
   </head>
   <body>
 
-    <!-- <div id='map' class="map"></div> -->
-    <div id="meters">
+    <div class="container container-fluid">
+      <div class="row">
+        <div class="col-md-4">
 
-      <div id="velocity" class="chart"></div>
-      <div id="elevation" class="chart"></div>
-      <div id="memory" class="chart"></div>
-      <div id="battery" class="chart gauge"></div>
+          <div id='map' class="map"></div>
 
-    </div>
-    <div id="controller">
+          <div id="meters">
 
-      <div id="buttons">
-      </div>
+            <div id="velocity" class="chart"></div>
+            <div id="elevation" class="chart"></div>
+            <div id="memory" class="chart"></div>
+            <div id="battery" class="chart gauge"></div>
 
-      <form id="mission">
-        <div id="instructions">
-          <table class="table table-striped">
-            <thead>
-              <tr>
-                <th>Command</th>
-                <th>Type</th>
-                <th>Value</th>
-                <th>Units</th>
-                <th>Remove</th>
-              </tr>
-            </thead>
-            <tbody id="i-list">
-            </tbody>
-          </table>
+          </div>
+
         </div>
-        <input type="submit">
-      </form>
+        <div class="col-md-3">
+          
+          <div id="buttons">
+          </div>
 
+        </div>
+        <div class="col-md-5">
+
+          <div id="controller">
+
+            <h2>Mission</h2>
+
+            <form id="mission">
+              <div id="instructions">
+                <table class="table table-striped">
+                  <thead>
+                    <tr>
+                      <th>Command</th>
+                      <th>Type</th>
+                      <th>Value</th>
+                      <th>Units</th>
+                      <th>Remove</th>
+                    </tr>
+                  </thead>
+                  <tbody id="i-list">
+                  </tbody>
+                </table>
+              </div>
+              <input type="submit">
+            </form>
+
+          </div>
+
+          <hr />
+
+          <h2>Quene</h2>
+
+          <div id="quene">
+            <table class="table table-striped">
+              <thead>
+                <tr>
+                  <th>Type</th>
+                  <th>Value</th>
+                </tr>
+              </thead>
+              <tbody id="q-list">
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+      </div>
     </div>
+    
 
     <script type="text/javascript">
       
@@ -92,6 +123,12 @@
       });
 
       var commands = {};
+
+      commands['home'] = {
+        functions: ['takeoff', 'land'],
+        defaul: true,
+        parameter: 'action'
+      };
 
       commands['direction'] = {
         functions: ['forward', 'backward', 'left', 'right', 'up', 'down'],
@@ -121,14 +158,18 @@
 
         var self = this;
 
-        self.$e = $('' +
+        self.html = '' +
           '<tr class="instruction">' +
             '<td>' + command + '</td>' +
-            '<td>' + funct + '</td>' +
-            '<td><input type="text" name="' + funct + '" value="' + commands[command].defaul + '"/></td>' +
-            '<td><span class="unit">' + commands[command].parameter + '</span></td>' +
+            '<td>' + funct + '</td>';
+
+          self.html +=             '<td><input type="text" name="' + funct + '" value="' + commands[command].defaul + '"/></td>';
+
+            self.html += '<td><span class="unit">' + commands[command].parameter + '</span></td>'+
             '<td><a class="fa fa-trash" href="#"></a></td>' +
-          '</tr>');
+          '</tr>';
+
+        self.$e = $(self.html)
 
         self.$e.find('.fa-trash').click(function(){
           self.$e.remove();
@@ -139,6 +180,7 @@
         return self;
 
       };
+
 
       var button = function(command, funct) {
         
@@ -181,6 +223,8 @@
 
         for(var i in array) {
           array[i].uuid = pubnub.uuid();
+          array[i].complete = false;
+          array[i].inProgress = false;
         }
 
         console.log(array);
@@ -195,8 +239,40 @@
 
       });
 
-    </script>
+      var quene = function(command) {
 
+        var self = this;
+
+        if(command.complete) {
+          $('#' + command.uuid).removeClass('info').addClass('success');
+        } else if(command.inProgress) { 
+          $('#' + command.uuid).addClass('info');
+        } else {
+
+          self.$e = $('' +
+            '<tr class="instruction" id="' + command.uuid + '">' +
+              '<td>' + command.name + '</td>' +
+              '<td>' + command.value + '</td>' +
+            '</tr>');
+
+          $('#q-list').append(self.$e);
+
+        }
+
+        return self;
+
+      };
+
+      pubnub.subscribe({
+        channel: 'pubnub_drone_quene',
+        message: function(message) {
+          console.log(message);
+          quene(message);
+        }
+      });
+
+    </script>
+    <script src="dash.js"></script>
 
   </body>
 </html>

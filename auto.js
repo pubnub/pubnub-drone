@@ -21,7 +21,7 @@ var arDroneConstants = require('ar-drone/lib/constants')
 var os = require('os');
 
 var client  = arDrone.createClient({
-  // ip: '192.168.1.78',
+  ip: '192.168.1.78'
   // imageSize: 1000 * 30
 });
 
@@ -30,13 +30,13 @@ var navdata_options = (
     navdata_option_mask(arDroneConstants.options.DEMO)
   | navdata_option_mask(arDroneConstants.options.VISION_DETECT)
   | navdata_option_mask(arDroneConstants.options.MAGNETO)
-  | navdata_option_mask(arDroneConstants.options.WIFI
-  | 777060865)
+  | navdata_option_mask(arDroneConstants.options.WIFI)
 );
 
 // Connect and configure the drone
 client.config('general:navdata_demo', true);
 client.config('general:navdata_options', navdata_options);
+client.config('general:navdata_options', 777060865);
 client.config('video:video_channel', 1);
 client.config('detect:detect_type', 12);
 
@@ -47,40 +47,72 @@ process.on("SIGINT", function() {
   }, 1000);                                                                                          
 });
 
-var ctrl    = new autonomy.Controller(client, {debug: false});
+pubnub = PUBNUB.init({     
+  origin: '54.236.3.173',
+  publish_key   : 'demo',
+  subscribe_key : 'demo'
+});
 
-var quene = [
-  {
-    name: "takeoff",
-    value: "1",
-    uuid: "89b9ad42-3032-42b0-8063-8ca6670bbd4d"
-  },
-  {
-    name: "ccw",
-    value: "90",
-    uuid: "d37cc58b-228a-49e1-bb85-9e2e6fbd4e79"
-  },
-  {
-    name: "land",
-    value: "1",
-    uuid: "d37cc58b-228a-49e1-bb85-9e2e6fbd4e79"
-  }
-];
+var ctrl = new autonomy.Controller(client, {debug: false});
 
 var inProgress = false;
 var activeStep;
+var quene = [];
+
+var publishStep = function(step) {
+
+  pubnub.publish({                                     
+    channel: "pubnub_drone_quene",
+    message: step,
+    callback: function(m){ 
+      console.log('message published');
+      console.log(m);
+    }
+  });
+
+}
+
+pubnub.subscribe({                                  
+  channel: "pubnub_drone_mission",
+  message: function(message) {
+    
+    for(var i in message) {
+      
+      console.log('got commands')
+      console.log(message[i]);
+
+      publishStep(message[i]);
+      quene.push(message[i]);
+
+    }
+
+  },
+  error: function(err) {
+    console.log(err);
+  }
+});    
+
 
 setInterval(function() {
 
   if(!inProgress && quene.length) {
 
     var done = function(err){
+
       if(err) {
         client.land();
+        console.log('!EERRROR')
         console.log(err);
       } else {
+        
         inProgress = false;
+        activeStep.inProgress = false;
+
+        activeStep.complete = true;
+        publishStep(activeStep);
+
         quene.shift();
+
       }
     };
 
@@ -90,11 +122,23 @@ setInterval(function() {
     console.log('performing step:');
     console.log(activeStep);
 
+    activeStep.inProgress = true;
+
+    publishStep(activeStep);
+
+    console.log(activeStep.name)
+
     if(activeStep.name == "takeoff") {
+
+      console.log('taking off')
+
       client.takeoff(function(){
+      
         ctrl.zero();
         done();
+
       });
+
     }
 
     if(activeStep.name == "land") {
@@ -107,13 +151,13 @@ setInterval(function() {
       ctrl.hover();
       setTimeout(function(){
         done();
-      }, activeStep.value);
+      }, parseInt(activeStep.value));
     }
 
     if(activeStep.name == "wait") {
       setTimeout(function(){
         done();
-      }, activeStep.value);
+      }, parseInt(activeStep.value));
     }
 
     if(activeStep.name == "go") {
@@ -121,68 +165,49 @@ setInterval(function() {
     }
 
     if(activeStep.name == "forward") {
-      ctrl.forward(activeStep.value, done);
+      ctrl.forward(parseInt(activeStep.value), done);
     }
 
     if(activeStep.name == "backward") {
-      ctrl.backward(activeStep.value, done);
+      ctrl.backward(parseInt(activeStep.value), done);
     }
 
     if(activeStep.name == "left") {
-      ctrl.left(activeStep.value, done);
+      ctrl.left(parseInt(activeStep.value), done);
     }
 
     if(activeStep.name == "right") {
-      ctrl.right(activeStep.value, done);
+      ctrl.right(parseInt(activeStep.value), done);
     }
 
     if(activeStep.name == "up") {
-      ctrl.up(activeStep.value, done);
+      ctrl.up(parseInt(activeStep.value), done);
     }
 
     if(activeStep.name == "down") {
-      ctrl.down(activeStep.value, done);
+      ctrl.down(parseInt(activeStep.value), done);
     }
 
     if(activeStep.name == "cw") {
-      ctrl.cw(activeStep.value, done);
+      ctrl.cw(parseInt(activeStep.value), done);
     }
 
     if(activeStep.name == "ccw") {
-      ctrl.ccw(activeStep.value, done);
+      ctrl.ccw(parseInt(activeStep.value), done);
     }
 
     if(activeStep.name == "altitude") {
-      ctrl.altitude(activeStep.value, done);
+      ctrl.altitude(parseInt(activeStep.value), done);
     }
 
     if(activeStep.name == "yaw") {
-      ctrl.yaw(activeStep.value, done);
+      ctrl.yaw(parseInt(activeStep.value), done);
     }
 
   } else {
   }
 
 }, 250);
-
-/*
-pubnub = PUBNUB.init({     
-  origin: '54.236.3.173',
-  publish_key   : 'demo',
-  subscribe_key : 'demo'
-});
-
-function pub() {
-  console.log('connected')
-  pubnub.publish({                                     
-    channel : "pubnub_drone",
-    message : "hello, I am a drone running pubnub over a hotspot",
-    callback: function(m){ 
-      console.log('message published');
-      console.log(m);
-    }
-  });
-}
 
 var canCall = true;
 lastData = null;
@@ -201,7 +226,6 @@ var handleData = function(droneData) {
   if (!canCall) { return };
 
   if(typeof droneData.demo !== "undefined") {
-    // console.log(droneData.demo.rotation.clockwise); 
     lastData = droneData;
   } else {
     droneData = lastData;
@@ -218,7 +242,7 @@ var handleData = function(droneData) {
 
   if(droneData) {
 
-    console.log('!!!!! publishing')
+    // console.log('!!!!! publishing')
 
     pubnub.publish({                                  
       channel: "pubnub_drone_stream",
@@ -230,6 +254,7 @@ var handleData = function(droneData) {
         client.animateLeds('blinkRed', 5, 1)
       },
       error: function(err) {
+        console.log('p error')
         console.log(err);
       }
     });    
@@ -254,4 +279,3 @@ if ('function' == typeof gc) {
   }, 500);
 
 }
-*/
