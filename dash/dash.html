@@ -95,19 +95,19 @@
 
       commands['direction'] = {
         functions: ['forward', 'backward', 'left', 'right', 'up', 'down'],
-        defaul: '1',
+        defaul: 1,
         parameter: 'meters'
       };
       
       commands['rotation'] = {
-        functions: ['cw', 'ccw'],
-        defaul: '90',
+        functions: ['cw', 'ccw', 'yaw'],
+        defaul: 90,
         parameter: 'degrees'
       };
       
       commands['altitude'] = {
         functions: ['altitude'],
-        defaul: '1',
+        defaul: 1,
         parameter: 'meters'
       };
       
@@ -122,7 +122,7 @@
         var self = this;
 
         self.$e = $('' +
-          '<tr>' +
+          '<tr class="instruction">' +
             '<td>' + command + '</td>' +
             '<td>' + funct + '</td>' +
             '<td><input type="text" name="' + funct + '" value="' + commands[command].defaul + '"/></td>' +
@@ -188,6 +188,8 @@
           channel: 'pubnub_drone_mission',
           message: array
         });
+
+        $('#i-list').empty();
 
         event.preventDefault();
 

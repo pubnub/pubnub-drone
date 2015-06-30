@@ -17,7 +17,7 @@ var vincenty = require('node-vincenty');
 var os = require('os');
 
 var client  = arDrone.createClient({
-  ip: '192.168.1.78',
+  // ip: '192.168.1.78',
   imageSize: 1000 * 30
 });
 

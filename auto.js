@@ -11,47 +11,161 @@
 // https://github.com/daraosn/ardrone-wpa2/issues/1
 // http://www.msh-tools.com/ardrone/ARDrone_Developer_Guide.pdf
 
+function navdata_option_mask(c) {
+  return 1 << c;
+}
 var PUBNUB = require('pubnub');
 var arDrone = require('ar-drone');
 var autonomy = require('ardrone-autonomy');
+var arDroneConstants = require('ar-drone/lib/constants')
 var os = require('os');
 
 var client  = arDrone.createClient({
-  ip: '192.168.1.78',
-  imageSize: 1000 * 30
+  // ip: '192.168.1.78',
+  // imageSize: 1000 * 30
 });
 
-client.config('general:navdata_demo', 'FALSE');
-client.config('general:navdata_options', 777060865);
+// From the SDK.
+var navdata_options = (
+    navdata_option_mask(arDroneConstants.options.DEMO)
+  | navdata_option_mask(arDroneConstants.options.VISION_DETECT)
+  | navdata_option_mask(arDroneConstants.options.MAGNETO)
+  | navdata_option_mask(arDroneConstants.options.WIFI
+  | 777060865)
+);
 
-client.takeoff();
-var ctrl = new autonomy.Controller(client, {debug: true});
+// Connect and configure the drone
+client.config('general:navdata_demo', true);
+client.config('general:navdata_options', navdata_options);
+client.config('video:video_channel', 1);
+client.config('detect:detect_type', 12);
 
-setTimeout(function(){
+process.on("SIGINT", function() {                                                                    
+  client.land();                                                                                      
+  setTimeout(function() {                                                                            
+    process.kill(process.pid);                                                                       
+  }, 1000);                                                                                          
+});
 
-  ctrl.zero();
-  console.log('zeroed')
+var ctrl    = new autonomy.Controller(client, {debug: false});
 
-  setTimeout(function(){
-  ctrl.altitude(2);
+var quene = [
+  {
+    name: "takeoff",
+    value: "1",
+    uuid: "89b9ad42-3032-42b0-8063-8ca6670bbd4d"
+  },
+  {
+    name: "ccw",
+    value: "90",
+    uuid: "d37cc58b-228a-49e1-bb85-9e2e6fbd4e79"
+  },
+  {
+    name: "land",
+    value: "1",
+    uuid: "d37cc58b-228a-49e1-bb85-9e2e6fbd4e79"
+  }
+];
 
-    setTimeout(function(){
+var inProgress = false;
+var activeStep;
 
-      console.log('x y 1')
-      ctrl.go({x: 1, y:1});
+setInterval(function() {
 
-      setTimeout(function(){
-        
+  if(!inProgress && quene.length) {
+
+    var done = function(err){
+      if(err) {
         client.land();
+        console.log(err);
+      } else {
+        inProgress = false;
+        quene.shift();
+      }
+    };
 
-      }, 10000);
+    inProgress = true;
+    activeStep = quene[0];
 
-    }, 2000);
+    console.log('performing step:');
+    console.log(activeStep);
 
-  }, 2000);
+    if(activeStep.name == "takeoff") {
+      client.takeoff(function(){
+        ctrl.zero();
+        done();
+      });
+    }
 
-}, 10000);
+    if(activeStep.name == "land") {
+      client.land(function(){
+        done();
+      });
+    }
 
+    if(activeStep.name == "hover") {
+      ctrl.hover();
+      setTimeout(function(){
+        done();
+      }, activeStep.value);
+    }
+
+    if(activeStep.name == "wait") {
+      setTimeout(function(){
+        done();
+      }, activeStep.value);
+    }
+
+    if(activeStep.name == "go") {
+      ctrl.go(JSON.parse(activeStep.value), done);
+    }
+
+    if(activeStep.name == "forward") {
+      ctrl.forward(activeStep.value, done);
+    }
+
+    if(activeStep.name == "backward") {
+      ctrl.backward(activeStep.value, done);
+    }
+
+    if(activeStep.name == "left") {
+      ctrl.left(activeStep.value, done);
+    }
+
+    if(activeStep.name == "right") {
+      ctrl.right(activeStep.value, done);
+    }
+
+    if(activeStep.name == "up") {
+      ctrl.up(activeStep.value, done);
+    }
+
+    if(activeStep.name == "down") {
+      ctrl.down(activeStep.value, done);
+    }
+
+    if(activeStep.name == "cw") {
+      ctrl.cw(activeStep.value, done);
+    }
+
+    if(activeStep.name == "ccw") {
+      ctrl.ccw(activeStep.value, done);
+    }
+
+    if(activeStep.name == "altitude") {
+      ctrl.altitude(activeStep.value, done);
+    }
+
+    if(activeStep.name == "yaw") {
+      ctrl.yaw(activeStep.value, done);
+    }
+
+  } else {
+  }
+
+}, 250);
+
+/*
 pubnub = PUBNUB.init({     
   origin: '54.236.3.173',
   publish_key   : 'demo',
@@ -128,13 +242,6 @@ var handleData = function(droneData) {
 
 client.on('navdata', handleData);
 
-process.on("SIGINT", function() {                                                                    
-  client.land();                                                                                      
-  setTimeout(function() {                                                                            
-    process.kill(process.pid);                                                                       
-  }, 1000);                                                                                          
-});
-
 // https://github.com/TooTallNate/ar-drone-socket.io-proxy/blob/master/receiver.js
 // DEBUG - run with `--expose_gc`
 if ('function' == typeof gc) {
@@ -147,3 +254,4 @@ if ('function' == typeof gc) {
   }, 500);
 
 }
+*/
