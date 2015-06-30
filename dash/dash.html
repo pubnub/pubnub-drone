@@ -86,6 +86,11 @@
 
     <script type="text/javascript">
       
+      var pubnub = PUBNUB.init({
+        subscribe_key: 'demo',
+        publish_key: 'demo'
+      });
+
       var commands = {};
 
       commands['direction'] = {
@@ -96,13 +101,13 @@
       
       commands['rotation'] = {
         functions: ['cw', 'ccw'],
-        defaul: '1',
+        defaul: '90',
         parameter: 'degrees'
       };
       
       commands['altitude'] = {
         functions: ['altitude'],
-        defal: '1',
+        defaul: '1',
         parameter: 'meters'
       };
       
@@ -116,16 +121,18 @@
 
         var self = this;
 
-        self.uuid = PUBNUB.uuid;
-
         self.$e = $('' +
           '<tr>' +
             '<td>' + command + '</td>' +
             '<td>' + funct + '</td>' +
-            '<td><input type="text" name="' + self.uuid + '" value="' + commands[command].defaul + '"/></td>' +
+            '<td><input type="text" name="' + funct + '" value="' + commands[command].defaul + '"/></td>' +
             '<td><span class="unit">' + commands[command].parameter + '</span></td>' +
-            '<td><span class="fa fa-trash"></span></td>' +
+            '<td><a class="fa fa-trash" href="#"></a></td>' +
           '</tr>');
+
+        self.$e.find('.fa-trash').click(function(){
+          self.$e.remove();
+        });
 
         $('#i-list').append(self.$e);
 
@@ -167,6 +174,24 @@
         $('#buttons').append($container);
 
       };
+
+      $("#mission").submit(function(event) {
+
+        var array = $(this).serializeArray();
+
+        for(var i in array) {
+          array[i].uuid = pubnub.uuid();
+        }
+
+        console.log(array);
+        pubnub.publish({
+          channel: 'pubnub_drone_mission',
+          message: array
+        });
+
+        event.preventDefault();
+
+      });
 
     </script>
 
