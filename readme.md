@@ -1,3 +1,10 @@
+# Overview
+
+* Write the drone mission on the right in a text field
+* Show the drone on the left in a map
+* Send it updates as you go
+* Attache the hotspot onto it
+
 # Control Your Drone with PubNub
 
 Take over the world!

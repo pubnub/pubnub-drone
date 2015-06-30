@@ -1,0 +1,151 @@
+
+<html>
+  <head>
+
+    <link rel="icon" type="image/png" href="/static/images/structure/favicon.png">
+    
+  <title>Realtime Map - EON Realtime Dashboards</title>
+
+  <link href='http://fonts.googleapis.com/css?family=Roboto:400,400italic,500,500italic,700,700italic,900,900italic,300italic,300' rel='stylesheet' type='text/css'>
+  <link href='http://fonts.googleapis.com/css?family=Roboto+Slab:400,700,300,100' rel='stylesheet' type='text/css'>
+
+  <link rel="stylesheet" href="/static/css/demos/eon/assets/plugins/bootstrap/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/static/css/demos/eon/assets/plugins/font-awesome/css/font-awesome.css">
+
+  <style>
+  body {
+    margin: 0;
+    /*padding: 0px 100px;*/
+  }
+  .map {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    z-index: 1;
+  }
+  .chart {
+    position: absolute;
+    z-index: 2;
+    background-color: white;
+    opacity: .8;
+    width: 30%;
+    left: 70%;
+    height: 190px;
+  }
+  .gauge {
+    height: 100px;
+  }
+  </style>
+
+  <!-- ### EON -->
+
+  <script type="text/javascript" src="http://pubnub.github.io/eon/lib/eon.js"></script>
+  <link type="text/css" rel="stylesheet" href="http://pubnub.github.io/eon/lib/eon.css" />
+
+  <!-- ### /EON -->
+  
+  <script type="text/javascript" src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+
+  </head>
+  <body>
+
+    <!-- <div id='map' class="map"></div> -->
+    <div id="meters">
+
+      <div id="velocity" class="chart"></div>
+      <div id="elevation" class="chart"></div>
+      <div id="memory" class="chart"></div>
+      <div id="battery" class="chart gauge"></div>
+
+    </div>
+    <div id="controller">
+
+      <div id="buttons">
+      </div>
+      <div id="instructions">
+      </div>
+
+    </div>
+
+    <script type="text/javascript">
+      
+      var commands = {};
+
+      commands['direction'] = {
+        functions: ['forward', 'backward', 'left', 'right', 'up', 'down'],
+        parameter: 'distance (m)'
+      };
+      
+      commands['rotation'] = {
+        functions: ['cw', 'ccw'],
+        parameter: 'angle'
+      };
+      
+      commands['altitude'] = {
+        functions: ['altitude'],
+        parameter: 'height (m)'
+      };
+      
+      commands['go'] = {
+        functions: ['go'],
+        parameter: '{x: 1, y: 1} (json)'
+      };
+
+      var instruction = function(type) {
+
+        var self = this;
+
+        self.uuid = PUBNUB.uuid;
+
+        self.$e = 
+          $('<div class="instruction ' + type + '"> ' +
+            '<input type="text" name="' + self.uuid + '" /> ' + commands[type].parameter + 
+          '</div>');
+
+        $('#instructions').append(self.$e);
+
+        return self;
+
+      };
+
+      var button = function(type, command) {
+        
+        var self = this;
+        
+        self.type = type;
+        self.$e = $('<a class="button ' + type + '" href="#">' + type + '</a>');
+        
+        self.$e.click(function(){
+          new instruction(command);
+        });
+
+        $container.append(self.$e);
+
+        return self;
+
+      };
+
+      for(var command in commands) {
+
+        var commando = commands[command];
+        var $container = $('<div><h2>' + command + '</h2></div>');
+
+        for(var funct in commando.functions) {
+    
+          var functo = commando.functions[funct];
+
+          var abutton = new button(functo, command);
+
+          console.log(abutton.$e)
+
+        };
+
+        $('#buttons').append($container);
+
+      };
+
+    </script>
+
+
+  </body>
+</html>

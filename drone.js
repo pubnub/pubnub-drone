@@ -15,9 +15,6 @@ var PUBNUB = require('pubnub');
 var arDrone = require('ar-drone');
 var vincenty = require('node-vincenty');
 var os = require('os');
-var PID      = require('./PID');
-
-var yawPID = new PID(1.0, 0, 1);
 
 var client  = arDrone.createClient({
   ip: '192.168.1.78',
@@ -76,6 +73,7 @@ var handleData = function(droneData) {
 
   /*
   if(droneData.demo && droneData.gps) {
+    
     // navigate
     vincenty.distVincenty(
       lastGPSlat, 
@@ -98,7 +96,6 @@ var handleData = function(droneData) {
 
         var uyaw = yawPID.getCommand(eyaw);
         console.log('uyaw:', uyaw);
-
 
         var cyaw = within(uyaw, -1, 1);
         console.log('cyaw:', cyaw);
