@@ -8,9 +8,11 @@
 
   <link href='http://fonts.googleapis.com/css?family=Roboto:400,400italic,500,500italic,700,700italic,900,900italic,300italic,300' rel='stylesheet' type='text/css'>
   <link href='http://fonts.googleapis.com/css?family=Roboto+Slab:400,700,300,100' rel='stylesheet' type='text/css'>
-
-  <link rel="stylesheet" href="/static/css/demos/eon/assets/plugins/bootstrap/css/bootstrap.min.css">
-  <link rel="stylesheet" href="/static/css/demos/eon/assets/plugins/font-awesome/css/font-awesome.css">
+  
+  <script type="text/javascript" src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+  <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
 
   <style>
   body {
@@ -43,8 +45,6 @@
   <link type="text/css" rel="stylesheet" href="http://pubnub.github.io/eon/lib/eon.css" />
 
   <!-- ### /EON -->
-  
-  <script type="text/javascript" src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
 
   </head>
   <body>
@@ -62,8 +62,25 @@
 
       <div id="buttons">
       </div>
-      <div id="instructions">
-      </div>
+
+      <form id="mission">
+        <div id="instructions">
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th>Command</th>
+                <th>Type</th>
+                <th>Value</th>
+                <th>Units</th>
+                <th>Remove</th>
+              </tr>
+            </thead>
+            <tbody id="i-list">
+            </tbody>
+          </table>
+        </div>
+        <input type="submit">
+      </form>
 
     </div>
 
@@ -73,50 +90,57 @@
 
       commands['direction'] = {
         functions: ['forward', 'backward', 'left', 'right', 'up', 'down'],
-        parameter: 'distance (m)'
+        defaul: '1',
+        parameter: 'meters'
       };
       
       commands['rotation'] = {
         functions: ['cw', 'ccw'],
-        parameter: 'angle'
+        defaul: '1',
+        parameter: 'degrees'
       };
       
       commands['altitude'] = {
         functions: ['altitude'],
-        parameter: 'height (m)'
+        defal: '1',
+        parameter: 'meters'
       };
       
       commands['go'] = {
         functions: ['go'],
-        parameter: '{x: 1, y: 1} (json)'
+        defaul: '{x: 1, y: 1}',
+        parameter: 'JSON'
       };
 
-      var instruction = function(type) {
+      var instruction = function(command, funct) {
 
         var self = this;
 
         self.uuid = PUBNUB.uuid;
 
-        self.$e = 
-          $('<div class="instruction ' + type + '"> ' +
-            '<input type="text" name="' + self.uuid + '" /> ' + commands[type].parameter + 
-          '</div>');
+        self.$e = $('' +
+          '<tr>' +
+            '<td>' + command + '</td>' +
+            '<td>' + funct + '</td>' +
+            '<td><input type="text" name="' + self.uuid + '" value="' + commands[command].defaul + '"/></td>' +
+            '<td><span class="unit">' + commands[command].parameter + '</span></td>' +
+            '<td><span class="fa fa-trash"></span></td>' +
+          '</tr>');
 
-        $('#instructions').append(self.$e);
+        $('#i-list').append(self.$e);
 
         return self;
 
       };
 
-      var button = function(type, command) {
+      var button = function(command, funct) {
         
         var self = this;
         
-        self.type = type;
-        self.$e = $('<a class="button ' + type + '" href="#">' + type + '</a>');
+        self.$e = $('<a class="btn btn-default ' + command + '" href="#">' + funct + '</a>');
         
         self.$e.click(function(){
-          new instruction(command);
+          new instruction(command, funct);
         });
 
         $container.append(self.$e);
@@ -134,7 +158,7 @@
     
           var functo = commando.functions[funct];
 
-          var abutton = new button(functo, command);
+          var abutton = new button(command, functo);
 
           console.log(abutton.$e)
 
