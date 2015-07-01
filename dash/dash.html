@@ -4,274 +4,157 @@
 
     <link rel="icon" type="image/png" href="/static/images/structure/favicon.png">
     
-  <title>Realtime Map - EON Realtime Dashboards</title>
+    <title>Drone Dashboard</title>
 
-  <link href='http://fonts.googleapis.com/css?family=Roboto:400,400italic,500,500italic,700,700italic,900,900italic,300italic,300' rel='stylesheet' type='text/css'>
-  <link href='http://fonts.googleapis.com/css?family=Roboto+Slab:400,700,300,100' rel='stylesheet' type='text/css'>
-  
-  <script type="text/javascript" src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
-  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
-  <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+    <link href='http://fonts.googleapis.com/css?family=Roboto:400,400italic,500,500italic,700,700italic,900,900italic,300italic,300' rel='stylesheet' type='text/css'>
+    <link href='http://fonts.googleapis.com/css?family=Roboto+Slab:400,700,300,100' rel='stylesheet' type='text/css'>
+    
+    <script type="text/javascript" src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
 
-  <!-- ### EON -->
+    <!-- ### EON -->
 
-  <script type="text/javascript" src="http://pubnub.github.io/eon/lib/eon.js"></script>
-  <link type="text/css" rel="stylesheet" href="http://pubnub.github.io/eon/lib/eon.css" />
+    <script type="text/javascript" src="http://pubnub.github.io/eon/lib/eon.js"></script>
+    <link type="text/css" rel="stylesheet" href="http://pubnub.github.io/eon/lib/eon.css" />
 
-  <!-- ### /EON -->
+    <!-- ### /EON -->
 
-  <style>
-  body {
-    margin: 0;
-    /*padding: 0px 100px;*/
-  }
-  .map {
-    width: 100%;
-    height: 350px;
-  }
-  .chart {
-    position: absolute;
-    z-index: 2;
-    background-color: white;
-    height: 190px;
-  }
-  .gauge {
-    height: 100px;
-  }
-  </style>
+    <style>
+    body {
+      margin: 0;
+      /*padding: 0px 100px;*/
+    }
+    .map {
+      width: 100%;
+      height: 350px;
+    }
+    .chart {
+      position: absolute;
+      z-index: 2;
+      height: 190px;
+    }
+    .gauge {
+      height: 100px;
+    }
+    #controls {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      margin-bottom: 20px;
+    }
+    #buttons .btn {
+      margin-right: 5px;
+      margin-bottom: 5px;
+      text-transform: capitalize;
+    }
+    #buttons .type h3 {
+      margin-top: 0px;
+      text-transform: capitalize;
+    }
+    #buttons hr {
+      border-top: 1px solid #ccc;
+    }
+    .container {
+      width: 100%;
+    }
+    input[type="text"] {
+      width: 60px;
+    }
+    </style>
 
   </head>
   <body>
 
-    <div class="container container-fluid">
-      <div class="row">
-        <div class="col-md-4">
+    <div id='map' class="map"></div>
 
-          <div id='map' class="map"></div>
+    <div id="controls">
 
-          <div id="meters">
+      <div class="container container-fluid">
+        <div class="row">
+          <div class="col-md-4">
 
-            <div id="velocity" class="chart"></div>
-            <div id="elevation" class="chart"></div>
-            <div id="memory" class="chart"></div>
-            <div id="battery" class="chart gauge"></div>
+          <h1>Status</h1>
+
+            <div id="meters">
+
+              <div class="well">
+                <div id="velocity" class="chart"></div>
+              </div>
+              <div class="well">
+                <div id="elevation" class="chart"></div>
+              </div>
+              <div class="well">
+                <div id="memory" class="chart"></div>
+              </div>
+              <div class="well">
+                <div id="battery" class="chart gauge"></div>
+              </div>
+
+            </div>
 
           </div>
+          <div class="col-md-3">
 
-        </div>
-        <div class="col-md-3">
-          
-          <div id="buttons">
+            <h1>Controls </h1>
+            
+            <div id="buttons">
+            </div>
+
           </div>
+          <div class="col-md-5">
 
-        </div>
-        <div class="col-md-5">
+            <h1>Mission</h1>
 
-          <div id="controller">
+            <div id="controller" class="well">
 
-            <h2>Mission</h2>
+              <form id="mission">
+                <div id="instructions">
+                  <table class="table table-striped">
+                    <thead>
+                      <tr>
+                        <th>Command</th>
+                        <th>Type</th>
+                        <th>Value</th>
+                        <th>Units</th>
+                        <th>Remove</th>
+                      </tr>
+                    </thead>
+                    <tbody id="i-list">
+                    </tbody>
+                  </table>
+                </div>
+                <input type="submit" value="Send Commands" class="btn btn-primary">
+              </form>
 
-            <form id="mission">
-              <div id="instructions">
+            </div>
+
+            <h3>Queue</h3>
+
+            <div class="well">
+
+              <div id="queue">
                 <table class="table table-striped">
                   <thead>
                     <tr>
-                      <th>Command</th>
                       <th>Type</th>
                       <th>Value</th>
-                      <th>Units</th>
-                      <th>Remove</th>
                     </tr>
                   </thead>
-                  <tbody id="i-list">
+                  <tbody id="q-list">
                   </tbody>
                 </table>
               </div>
-              <input type="submit">
-            </form>
+
+            </div>
 
           </div>
-
-          <hr />
-
-          <h2>Quene</h2>
-
-          <div id="quene">
-            <table class="table table-striped">
-              <thead>
-                <tr>
-                  <th>Type</th>
-                  <th>Value</th>
-                </tr>
-              </thead>
-              <tbody id="q-list">
-              </tbody>
-            </table>
-          </div>
-
         </div>
       </div>
+
     </div>
     
-
-    <script type="text/javascript">
-      
-      var pubnub = PUBNUB.init({
-        subscribe_key: 'demo',
-        publish_key: 'demo'
-      });
-
-      var commands = {};
-
-      commands['home'] = {
-        functions: ['takeoff', 'land'],
-        defaul: true,
-        parameter: 'action'
-      };
-
-      commands['direction'] = {
-        functions: ['forward', 'backward', 'left', 'right', 'up', 'down'],
-        defaul: 1,
-        parameter: 'meters'
-      };
-      
-      commands['rotation'] = {
-        functions: ['cw', 'ccw', 'yaw'],
-        defaul: 90,
-        parameter: 'degrees'
-      };
-      
-      commands['altitude'] = {
-        functions: ['altitude'],
-        defaul: 1,
-        parameter: 'meters'
-      };
-      
-      commands['go'] = {
-        functions: ['go'],
-        defaul: '{x: 1, y: 1}',
-        parameter: 'JSON'
-      };
-
-      var instruction = function(command, funct) {
-
-        var self = this;
-
-        self.html = '' +
-          '<tr class="instruction">' +
-            '<td>' + command + '</td>' +
-            '<td>' + funct + '</td>';
-
-          self.html +=             '<td><input type="text" name="' + funct + '" value="' + commands[command].defaul + '"/></td>';
-
-            self.html += '<td><span class="unit">' + commands[command].parameter + '</span></td>'+
-            '<td><a class="fa fa-trash" href="#"></a></td>' +
-          '</tr>';
-
-        self.$e = $(self.html)
-
-        self.$e.find('.fa-trash').click(function(){
-          self.$e.remove();
-        });
-
-        $('#i-list').append(self.$e);
-
-        return self;
-
-      };
-
-
-      var button = function(command, funct) {
-        
-        var self = this;
-        
-        self.$e = $('<a class="btn btn-default ' + command + '" href="#">' + funct + '</a>');
-        
-        self.$e.click(function(){
-          new instruction(command, funct);
-        });
-
-        $container.append(self.$e);
-
-        return self;
-
-      };
-
-      for(var command in commands) {
-
-        var commando = commands[command];
-        var $container = $('<div><h2>' + command + '</h2></div>');
-
-        for(var funct in commando.functions) {
-    
-          var functo = commando.functions[funct];
-
-          var abutton = new button(command, functo);
-
-          console.log(abutton.$e)
-
-        };
-
-        $('#buttons').append($container);
-
-      };
-
-      $("#mission").submit(function(event) {
-
-        var array = $(this).serializeArray();
-
-        for(var i in array) {
-          array[i].uuid = pubnub.uuid();
-          array[i].complete = false;
-          array[i].inProgress = false;
-        }
-
-        console.log(array);
-        pubnub.publish({
-          channel: 'pubnub_drone_mission',
-          message: array
-        });
-
-        $('#i-list').empty();
-
-        event.preventDefault();
-
-      });
-
-      var quene = function(command) {
-
-        var self = this;
-
-        if(command.complete) {
-          $('#' + command.uuid).removeClass('info').addClass('success');
-        } else if(command.inProgress) { 
-          $('#' + command.uuid).addClass('info');
-        } else {
-
-          self.$e = $('' +
-            '<tr class="instruction" id="' + command.uuid + '">' +
-              '<td>' + command.name + '</td>' +
-              '<td>' + command.value + '</td>' +
-            '</tr>');
-
-          $('#q-list').append(self.$e);
-
-        }
-
-        return self;
-
-      };
-
-      pubnub.subscribe({
-        channel: 'pubnub_drone_quene',
-        message: function(message) {
-          console.log(message);
-          quene(message);
-        }
-      });
-
-    </script>
     <script src="dash.js"></script>
 
   </body>

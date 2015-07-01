@@ -7,6 +7,7 @@
 // killall udhcpd; iwconfig ath0 mode managed essid dronefi; /sbin/udhcpc -i ath0; sleep 5; route add default gw 192.168.1.1;
 // ./bin/node --expose_gc drone.js
 
+// don't double zero
 
 // follow this
 // https://github.com/daraosn/ardrone-wpa2/issues/1

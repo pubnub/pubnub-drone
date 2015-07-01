@@ -26,7 +26,13 @@ var mapbox = eon.map({
   rotate: true,
   marker: function (latlng, data) {
 
-    var marker = new L.RotatedMarker(latlng);
+    var marker = new L.RotatedMarker(latlng, {
+          icon: L.icon({
+            iconUrl: 'https://d30y9cdsu7xlg0.cloudfront.net/png/65910-200.png',
+            iconSize: [24, 24]
+          })
+        });
+
 
     return marker;
 
@@ -138,5 +144,162 @@ eon.chart({
 
     }
 
+  }
+});
+
+
+var pubnub = PUBNUB.init({
+  subscribe_key: 'demo',
+  publish_key: 'demo'
+});
+
+var commands = {};
+
+commands['home'] = {
+  functions: ['takeoff', 'land'],
+  defaul: true,
+  parameter: 'action'
+};
+
+commands['direction'] = {
+  functions: ['forward', 'backward', 'left', 'right', 'up', 'down'],
+  defaul: 1,
+  parameter: 'meters'
+};
+
+commands['rotation'] = {
+  functions: ['cw', 'ccw', 'yaw'],
+  defaul: 90,
+  parameter: 'degrees'
+};
+
+commands['altitude'] = {
+  functions: ['altitude'],
+  defaul: 1,
+  parameter: 'meters'
+};
+
+commands['go'] = {
+  functions: ['go'],
+  defaul: '{x: 1, y: 1}',
+  parameter: 'JSON'
+};
+
+var instruction = function(command, funct) {
+
+  var self = this;
+
+  self.html = '' +
+    '<tr class="instruction">' +
+      '<td>' + command + '</td>' +
+      '<td>' + funct + '</td>';
+
+    self.html +=             '<td><input type="text" name="' + funct + '" value="' + commands[command].defaul + '"/></td>';
+
+      self.html += '<td><span class="unit">' + commands[command].parameter + '</span></td>'+
+      '<td><a class="fa fa-trash" href="#"></a></td>' +
+    '</tr>';
+
+  self.$e = $(self.html)
+
+  self.$e.find('.fa-trash').click(function(){
+    self.$e.remove();
+    return false;
+  });
+
+  $('#i-list').append(self.$e);
+
+  return self;
+
+};
+
+
+var button = function(command, funct) {
+  
+  var self = this;
+  
+  self.$e = $('<a class="btn btn-default ' + command + '" href="#">' + funct + '</a>');
+  
+  self.$e.click(function(){
+    new instruction(command, funct);
+    return false;
+  });
+
+  $container.append(self.$e);
+
+  return self;
+
+};
+
+for(var command in commands) {
+
+  var commando = commands[command];
+  var $container = $('<div class="type well"><h3>' + command + '</h3><hr /></div>');
+
+  for(var funct in commando.functions) {
+
+    var functo = commando.functions[funct];
+
+    var abutton = new button(command, functo);
+
+    console.log(abutton.$e)
+
+  };
+
+  $('#buttons').append($container);
+
+};
+
+$("#mission").submit(function(event) {
+
+  var array = $(this).serializeArray();
+
+  for(var i in array) {
+    array[i].uuid = pubnub.uuid();
+    array[i].complete = false;
+    array[i].inProgress = false;
+  }
+
+  console.log(array);
+  pubnub.publish({
+    channel: 'pubnub_drone_mission',
+    message: array
+  });
+
+  $('#i-list').empty();
+
+  event.preventDefault();
+
+});
+
+var queue = function(command) {
+
+  var self = this;
+
+  if(command.complete) {
+    $('#' + command.uuid).removeClass('info').addClass('success');
+  } else if(command.inProgress) { 
+    $('#' + command.uuid).addClass('info');
+  } else {
+
+    self.$e = $('' +
+      '<tr class="instruction" id="' + command.uuid + '">' +
+        '<td>' + command.name + '</td>' +
+        '<td>' + command.value + '</td>' +
+      '</tr>');
+
+    $('#q-list').append(self.$e);
+
+  }
+
+  return self;
+
+};
+
+pubnub.subscribe({
+  channel: 'pubnub_drone_queue',
+  message: function(message) {
+    console.log(message);
+    queue(message);
   }
 });
