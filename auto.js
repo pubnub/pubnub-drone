@@ -92,7 +92,7 @@ pubnub.subscribe({
   }
 });    
 
-
+var firstRun = true;
 setInterval(function() {
 
   if(!inProgress && quene.length) {
@@ -133,8 +133,11 @@ setInterval(function() {
       console.log('taking off')
 
       client.takeoff(function(){
-      
-        ctrl.zero();
+
+        if(firstRun) {
+          ctrl.zero();
+          firstRun = false;
+        }      
         done();
 
       });
