@@ -29,7 +29,7 @@ var mapbox = eon.map({
     var marker = new L.RotatedMarker(latlng, {
       icon: L.icon({
         iconUrl: 'https://d30y9cdsu7xlg0.cloudfront.net/png/65910-200.png',
-        iconSize: [24, 24]
+        iconSize: [48, 48]
       })
     });
 
