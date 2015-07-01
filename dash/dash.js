@@ -185,6 +185,15 @@ commands['go'] = {
   parameter: 'JSON'
 };
 
+commands['tricks'] = {
+  functions: ['phiM30Deg', 'phi30Deg', 'thetaM30Deg', 'theta30Deg', 'theta20degYaw200deg',
+'theta20degYawM200deg', 'turnaround', 'turnaroundGodown', 'yawShake',
+'yawDance', 'phiDance', 'thetaDance', 'vzDance', 'wave', 'phiThetaMixed',
+'doublePhiThetaMixed', 'flipAhead', 'flipBehind', 'flipLeft', 'flipRight'],
+  defaul: '1000',
+  parameter: 'ms'
+}
+
 var instruction = function(command, funct) {
 
   var self = this;
@@ -214,18 +223,18 @@ var instruction = function(command, funct) {
 };
 
 
-var button = function(command, funct) {
+var button = function($container, command, funct) {
   
   var self = this;
   
-  self.$e = $('<a class="btn btn-default ' + command + '" href="#">' + funct + '</a>');
+  self.$e = $('<li class="' + funct + '"><a href="#">' + funct + '</a></li>');
   
   self.$e.click(function(){
     new instruction(command, funct);
     return false;
   });
 
-  $container.append(self.$e);
+  $container.find('.dropdown-menu').append(self.$e);
 
   return self;
 
@@ -233,14 +242,22 @@ var button = function(command, funct) {
 
 for(var command in commands) {
 
+  console.log(command)
+
   var commando = commands[command];
-  var $container = $('<div class="type well"><h3>' + command + '</h3><hr /></div>');
+  var $container = $('<span class="dropdown">' +
+    '<button class="btn btn-default dropdown-toggle" type="button" id="' + command +'" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">' + command +
+      ' <span class="caret"></span>' +
+    '</button>' +
+    '<ul class="dropdown-menu" aria-labelledby="' + command + '">' +
+    '</ul>' +
+  '</span>');
 
   for(var funct in commando.functions) {
 
     var functo = commando.functions[funct];
 
-    var abutton = new button(command, functo);
+    var abutton = new button($container, command, functo);
 
     console.log(abutton.$e)
 

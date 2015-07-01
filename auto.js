@@ -5,7 +5,7 @@
 // killall udhcpd; iwconfig ath0 mode managed key s:A1B2C essid dronefi2; /sbin/udhcpc -i ath0; sleep 5; route add default gw 192.168.1.1;
 
 // killall udhcpd; iwconfig ath0 mode managed essid dronefi; /sbin/udhcpc -i ath0; sleep 5; route add default gw 192.168.1.1;
-// ./bin/node --expose_gc drone.js
+// ./bin/node --expose_gc auto.js
 
 // follow this
 // https://github.com/daraosn/ardrone-wpa2/issues/1
@@ -57,12 +57,12 @@ var ctrl = new autonomy.Controller(client, {debug: false});
 
 var inProgress = false;
 var activeStep;
-var quene = [];
+var queue = [];
 
 var publishStep = function(step) {
 
   pubnub.publish({                                     
-    channel: "pubnub_drone_quene",
+    channel: "pubnub_drone_queue",
     message: step,
     callback: function(m){ 
       console.log('message published');
@@ -82,7 +82,7 @@ pubnub.subscribe({
       console.log(message[i]);
 
       publishStep(message[i]);
-      quene.push(message[i]);
+      queue.push(message[i]);
 
     }
 
@@ -93,9 +93,14 @@ pubnub.subscribe({
 });    
 
 var firstRun = true;
+var tricks = ['phiM30Deg', 'phi30Deg', 'thetaM30Deg', 'theta30Deg', 'theta20degYaw200deg',
+'theta20degYawM200deg', 'turnaround', 'turnaroundGodown', 'yawShake',
+'yawDance', 'phiDance', 'thetaDance', 'vzDance', 'wave', 'phiThetaMixed',
+'doublePhiThetaMixed', 'flipAhead', 'flipBehind', 'flipLeft', 'flipRight'];
+
 setInterval(function() {
 
-  if(!inProgress && quene.length) {
+  if(!inProgress && queue.length) {
 
     var done = function(err){
 
@@ -111,13 +116,13 @@ setInterval(function() {
         activeStep.complete = true;
         publishStep(activeStep);
 
-        quene.shift();
+        queue.shift();
 
       }
     };
 
     inProgress = true;
-    activeStep = quene[0];
+    activeStep = queue[0];
 
     console.log('performing step:');
     console.log(activeStep);
@@ -207,6 +212,15 @@ setInterval(function() {
       ctrl.yaw(parseInt(activeStep.value), done);
     }
 
+    if(tricks.indexOf(activeStep.name) > -1) {
+      
+      client.animate(activeStep.name, activeStep.value);
+      setTimeout(function(){
+        done();
+      }, activeStep.value);
+
+    }
+
   } else {
   }
 
@@ -254,11 +268,14 @@ var handleData = function(droneData) {
         drone: droneData
       },
       callback: function(){
-        client.animateLeds('blinkRed', 5, 1)
+        client.animateLeds('blinkGreen', 5, 1)
       },
       error: function(err) {
+        
         console.log('p error')
         console.log(err);
+
+        client.animateLeds('blinkRed', 5, 1)
       }
     });    
 
