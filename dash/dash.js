@@ -24,26 +24,23 @@ var mapbox = eon.map({
   mb_id: 'ianjennings.mfoamn2k',
   channel: 'pubnub_drone_stream',
   rotate: true,
-  marker: function (latlng, data) {
+  marker: function (latlng) {
 
     var marker = new L.RotatedMarker(latlng, {
-          icon: L.icon({
-            iconUrl: 'https://d30y9cdsu7xlg0.cloudfront.net/png/65910-200.png',
-            iconSize: [24, 24]
-          })
-        });
+      icon: L.icon({
+        iconUrl: 'https://d30y9cdsu7xlg0.cloudfront.net/png/65910-200.png',
+        iconSize: [24, 24]
+      })
+    });
 
+    mapbox.setView({lat: latlng[0], lng: latlng[1]}, 20);
 
     return marker;
 
   },
   connect: function(){
-    console.log('woop woop')
   },
   transform: function(data) {
-
-    console.log('map cb')
-    console.log(data);
 
       return [
         { latlng: [data.drone.gps.latitude, data.drone.gps.longitude] }
@@ -242,8 +239,6 @@ var button = function($container, command, funct) {
 
 for(var command in commands) {
 
-  console.log(command)
-
   var commando = commands[command];
   var $container = $('<span class="dropdown">' +
     '<button class="btn btn-default dropdown-toggle" type="button" id="' + command +'" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">' + command +
@@ -258,8 +253,6 @@ for(var command in commands) {
     var functo = commando.functions[funct];
 
     var abutton = new button($container, command, functo);
-
-    console.log(abutton.$e)
 
   };
 
