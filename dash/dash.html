@@ -28,21 +28,26 @@
     }
     .map {
       width: 100%;
-      height: 350px;
+      height: 100%;
+      position: fixed;
     }
     .chart {
       position: absolute;
       z-index: 2;
       height: 190px;
+      margin-bottom: 10px;
     }
     .gauge {
       height: 100px;
     }
     #controls {
-      position: relative;
+      position: absolute;
       width: 100%;
-      height: 100%;
       margin-bottom: 20px;
+      opacity: .9
+    }
+    #buttons {
+      margin-bottom: 10px;
     }
     #buttons .btn {
       margin-right: 5px;
@@ -57,7 +62,10 @@
       border-top: 1px solid #ccc;
     }
     .container {
-      width: 100%;
+      width: 94%;
+      margin-right: 3%;
+      margin-left: 3%;
+      margin-top: 10px;
     }
     input[type="text"] {
       width: 60px;
@@ -75,8 +83,6 @@
         <div class="row">
           <div class="col-md-4">
 
-          <h1>Status</h1>
-
             <div id="meters">
 
               <div class="well">
@@ -91,18 +97,13 @@
               <div class="well">
                 <div id="battery" class="chart gauge"></div>
               </div>
-
             </div>
 
           </div>
           <div class="col-md-8">
-
-            <h1>Controls </h1>
             
             <div id="buttons">
             </div>
-
-            <h1>Mission</h1>
 
             <div id="controller" class="well">
 
@@ -126,8 +127,6 @@
               </form>
 
             </div>
-
-            <h3>Queue</h3>
 
             <div class="well">
 

@@ -33,7 +33,9 @@ var mapbox = eon.map({
       })
     });
 
-    mapbox.setView({lat: latlng[0], lng: latlng[1]}, 20);
+    if(latlng[0] > 0) {
+      mapbox.setView({lat: latlng[0], lng: latlng[1]});
+    }
 
     return marker;
 
@@ -47,18 +49,6 @@ var mapbox = eon.map({
       ];
 
   }
-});
-
-mapbox.on('click', function(e) {
-
-  PUBNUB.publish({
-    channel: 'pubnub_drone_waypoint',
-    message: {
-      lat: e.latlng.lat,
-      lng: e.latlng.lng
-    }
-  });
-
 });
 
 // velocity chart
