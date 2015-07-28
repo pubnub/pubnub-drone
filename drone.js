@@ -1,29 +1,48 @@
 // telnet 192.168.1.1
 // network name is dronefi
 
-// WIP
-// killall udhcpd; iwconfig ath0 mode managed key s:A1B2C essid dronefi2; /sbin/udhcpc -i ath0; sleep 5; route add default gw 192.168.1.1;
-
-// killall udhcpd; iwconfig ath0 mode managed essid dronefi; /sbin/udhcpc -i ath0; sleep 5; route add default gw 192.168.1.1;
-// ./bin/node --expose_gc drone.js
-
-// don't double zero
+// killall udhcpd; iwconfig ath0 mode managed essid drone; /sbin/udhcpc -i ath0; sleep 5; route add default gw 192.168.1.1;
+// ./bin/node --expose_gc auto.js
 
 // follow this
 // https://github.com/daraosn/ardrone-wpa2/issues/1
 // http://www.msh-tools.com/ardrone/ARDrone_Developer_Guide.pdf
+
+function navdata_option_mask(c) {
+  return 1 << c;
+}
 var PUBNUB = require('pubnub');
 var arDrone = require('ar-drone');
-var vincenty = require('node-vincenty');
+var autonomy = require('ardrone-autonomy');
+var arDroneConstants = require('ar-drone/lib/constants')
 var os = require('os');
 
 var client  = arDrone.createClient({
-  // ip: '192.168.1.78',
-  imageSize: 1000 * 30
+  ip: '192.168.1.87'
+  // imageSize: 1000 * 30
 });
 
-client.config('general:navdata_demo', 'FALSE');
+// From the SDK.
+var navdata_options = (
+    navdata_option_mask(arDroneConstants.options.DEMO)
+  | navdata_option_mask(arDroneConstants.options.VISION_DETECT)
+  | navdata_option_mask(arDroneConstants.options.MAGNETO)
+  | navdata_option_mask(arDroneConstants.options.WIFI)
+);
+
+// Connect and configure the drone
+client.config('general:navdata_demo', true);
+client.config('general:navdata_options', navdata_options);
 client.config('general:navdata_options', 777060865);
+client.config('video:video_channel', 1);
+client.config('detect:detect_type', 12);
+
+process.on("SIGINT", function() {                                                                    
+  client.land();                                                                                      
+  setTimeout(function() {                                                                            
+    process.kill(process.pid);                                                                       
+  }, 1000);                                                                                          
+});
 
 pubnub = PUBNUB.init({     
   origin: '54.236.3.173',
@@ -31,33 +50,178 @@ pubnub = PUBNUB.init({
   subscribe_key : 'demo'
 });
 
-function pub() {
-  console.log('connected')
+var ctrl = new autonomy.Controller(client, {debug: false});
+
+var inProgress = false;
+var activeStep;
+var queue = [];
+
+var publishStep = function(step) {
+
   pubnub.publish({                                     
-    channel : "pubnub_drone",
-    message : "hello, I am a drone running pubnub over a hotspot",
+    channel: "pubnub_drone_queue",
+    message: step,
     callback: function(m){ 
       console.log('message published');
       console.log(m);
+    }
+  });
 
-     }
-  })
 }
 
-function within(x, min, max) {
-  if (x < min) {
-      return min;
-  } else if (x > max) {
-      return max;
-  } else {
-      return x;
+pubnub.subscribe({                                  
+  channel: "pubnub_drone_mission",
+  message: function(message) {
+    
+    for(var i in message) {
+      
+      console.log('got commands')
+      console.log(message[i]);
+
+      publishStep(message[i]);
+      queue.push(message[i]);
+
+    }
+
+  },
+  error: function(err) {
+    console.log(err);
   }
-}
+});    
 
-var target = {
-  lat: 30.353353939192427,
-  lng: -97.67154425382614
-};
+var firstRun = true;
+var tricks = ['phiM30Deg', 'phi30Deg', 'thetaM30Deg', 'theta30Deg', 'theta20degYaw200deg',
+'theta20degYawM200deg', 'turnaround', 'turnaroundGodown', 'yawShake',
+'yawDance', 'phiDance', 'thetaDance', 'vzDance', 'wave', 'phiThetaMixed',
+'doublePhiThetaMixed', 'flipAhead', 'flipBehind', 'flipLeft', 'flipRight'];
+
+setInterval(function() {
+
+  if(!inProgress && queue.length) {
+
+    var done = function(err){
+
+      if(err) {
+        client.land();
+        console.log('!EERRROR')
+        console.log(err);
+      } else {
+        
+        inProgress = false;
+        activeStep.inProgress = false;
+
+        activeStep.complete = true;
+        publishStep(activeStep);
+
+        queue.shift();
+
+      }
+    };
+
+    inProgress = true;
+    activeStep = queue[0];
+
+    console.log('performing step:');
+    console.log(activeStep);
+
+    activeStep.inProgress = true;
+
+    publishStep(activeStep);
+
+    console.log(activeStep.name)
+
+    if(activeStep.name == "takeoff") {
+
+      console.log('taking off')
+
+      client.takeoff(function(){
+
+        if(firstRun) {
+          ctrl.zero();
+          // firstRun = false;
+        }      
+        done();
+
+      });
+
+    }
+
+    if(activeStep.name == "land") {
+      client.land(function(){
+        done();
+      });
+    }
+
+    if(activeStep.name == "hover") {
+      ctrl.hover();
+      setTimeout(function(){
+        done();
+      }, parseInt(activeStep.value));
+    }
+
+    if(activeStep.name == "wait") {
+      setTimeout(function(){
+        done();
+      }, parseInt(activeStep.value));
+    }
+
+    if(activeStep.name == "go") {
+      ctrl.go(JSON.parse(activeStep.value), done);
+    }
+
+    if(activeStep.name == "forward") {
+      ctrl.forward(parseInt(activeStep.value), done);
+    }
+
+    if(activeStep.name == "backward") {
+      ctrl.backward(parseInt(activeStep.value), done);
+    }
+
+    if(activeStep.name == "left") {
+      ctrl.left(parseInt(activeStep.value), done);
+    }
+
+    if(activeStep.name == "right") {
+      ctrl.right(parseInt(activeStep.value), done);
+    }
+
+    if(activeStep.name == "up") {
+      ctrl.up(parseInt(activeStep.value), done);
+    }
+
+    if(activeStep.name == "down") {
+      ctrl.down(parseInt(activeStep.value), done);
+    }
+
+    if(activeStep.name == "cw") {
+      ctrl.cw(parseInt(activeStep.value), done);
+    }
+
+    if(activeStep.name == "ccw") {
+      ctrl.ccw(parseInt(activeStep.value), done);
+    }
+
+    if(activeStep.name == "altitude") {
+      ctrl.altitude(parseInt(activeStep.value), done);
+    }
+
+    if(activeStep.name == "yaw") {
+      ctrl.yaw(parseInt(activeStep.value), done);
+    }
+
+    if(tricks.indexOf(activeStep.name) > -1) {
+      
+      client.animate(activeStep.name, activeStep.value);
+      setTimeout(function(){
+        done();
+      }, activeStep.value);
+
+    }
+
+  } else {
+  }
+
+}, 250);
 
 var canCall = true;
 lastData = null;
@@ -72,56 +236,10 @@ var handleData = function(droneData) {
     var lastGPSlng = droneData.gps.longitude;
   }
 
-  /*
-  if(droneData.demo && droneData.gps) {
-    
-    // navigate
-    vincenty.distVincenty(
-      lastGPSlat, 
-      lastGPSlng, 
-      target.lat, 
-      target.lng, function (distance, initialBearing, finalBearing) {
-      
-      currentYaw = droneData.demo.rotation.yaw;
-
-      if(distance > 1){
-
-        currentDistance = distance
-        console.log('distance', distance)
-        console.log('bearing:', initialBearing)
-        targetYaw = initialBearing;
-
-        console.log('currentYaw:', currentYaw);
-        var eyaw = targetYaw - currentYaw;
-        console.log('eyaw:', eyaw);
-
-        var uyaw = yawPID.getCommand(eyaw);
-        console.log('uyaw:', uyaw);
-
-        var cyaw = within(uyaw, -1, 1);
-        console.log('cyaw:', cyaw);
-
-        client.clockwise(cyaw / 10)
-
-        if(within(eyaw, -1, 1)){
-          client.front(0.2);
-        }
-
-      } else {
-        targetYaw = null
-        console.log('!!!!!!!!!!!!!!!!!! Reached ', target.lat, target.lng)
-        client.land();
-      }
-
-    });
-  }
-  */
-
   // publish to pn
   if (!canCall) { return };
 
   if(typeof droneData.demo !== "undefined") {
-    // console.log(droneData.demo.rotation.clockwise); 
     lastData = droneData;
   } else {
     droneData = lastData;
@@ -138,7 +256,7 @@ var handleData = function(droneData) {
 
   if(droneData) {
 
-    console.log('!!!!! publishing')
+    // console.log('!!!!! publishing')
 
     pubnub.publish({                                  
       channel: "pubnub_drone_stream",
@@ -147,12 +265,14 @@ var handleData = function(droneData) {
         drone: droneData
       },
       callback: function(){
-        // console.log('published');
-        client.animateLeds('blinkRed', 5, 1)
-
+        client.animateLeds('blinkGreen', 5, 1)
       },
       error: function(err) {
+        
+        console.log('p error')
         console.log(err);
+
+        client.animateLeds('blinkRed', 5, 1)
       }
     });    
 
@@ -162,73 +282,7 @@ var handleData = function(droneData) {
 
 };
 
-// client.takeoff();
 client.on('navdata', handleData);
-
-pubnub.subscribe({
-  channel: 'pubnub_drone_control',
-  connect: pub,
-  message: function(message) {
-
-    // console.log('got message')
-    // console.log(message)
-
-    client.animateLeds('blinkGreen', 5, 1)
-    
-    if(message == "takeoff") {
-      client.takeoff();
-    }
-
-    if(message == "land") {
-      client.land();
-    }
-
-    if(message == "clockwise") {
-      client.clockwise(.2);
-    }
-
-    if(message == "counterclockwise") {
-      client.counterClockwise(.2);
-    }
-
-    if(message == "left") {
-      client.left(.2);
-    }
-
-    if(message == "right") {
-      client.right(.2);
-    }
-
-    if(message == "front") {
-      client.front(.2);
-    }
-
-    if(message == "back") {
-      client.back(.2);
-    }
-
-    if(message == "up") {
-      client.up(.2);
-    }
-
-    if(message == "down") {
-      client.down(.2);
-    }
-
-    if(message == "stop") {
-      client.stop();
-    }
-
-  }
-
-});
-
-process.on("SIGINT", function() {                                                                    
-  client.land();                                                                                      
-  setTimeout(function() {                                                                            
-    process.kill(process.pid);                                                                       
-  }, 1000);                                                                                          
-});
 
 // https://github.com/TooTallNate/ar-drone-socket.io-proxy/blob/master/receiver.js
 // DEBUG - run with `--expose_gc`
