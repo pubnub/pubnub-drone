@@ -142,7 +142,7 @@ You should see some basic output in the graphs like the battery level and free m
 ![](http://i.imgur.com/GvElVyR.gif)
 http://i.imgur.com/GvElVyR.gif
 
-## The control interface
+## The Control Interface
 
 The interface is built off of EON, PubNub's open source realtie charting library. This is how we're publishing the information from the drone, over the internet, and into our graph.
 
