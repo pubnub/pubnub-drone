@@ -140,6 +140,7 @@ Now, on your computer, load ```index.html``` from inside the dashboard.
 You should see some basic output in the graphs like the battery level and free memory percentage.
 
 ![](http://i.imgur.com/GvElVyR.gif)
+http://i.imgur.com/GvElVyR.gif
 
 ## Controlling the Drone via the EON Interface
 
@@ -152,5 +153,6 @@ You can use the dropdown on the right side to select commands to build a mission
 When your mission is ready to go, click "send commands" and the command will be sent to the drone. If the drone recieves the commands, they will appear on the queue below. When the command is in progress, it will turn blue. When the command is complete, it will turn green. 
 
 ![](http://i.imgur.com/BqXdvzX.gif)
+http://i.imgur.com/BqXdvzX.gif
 
 Enjoy playing around with your drone! This project was inspired by [TooTallNate's Socket.io Drone Proxy](https://github.com/TooTallNate/ar-drone-socket.io-proxy) and uses [ardrone-autonomy](https://github.com/eschnou/ardrone-autonomy) to create missions.
