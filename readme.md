@@ -1,12 +1,18 @@
 # Control Your Drone with PubNub
 
-# Overview
+Ever wonder how a taco copter would actually work? How would it fly autonomously? Who would give it commands? 
 
-The purpose of this demo is to simulate the sitatuon in which a customer orders a product from an online retailer, and a drone is dispatched autonomously. 
+Well if you really are curious, build your own! In this tutorial we'll hack a drone, give it internet access, and then control it remotely from any computer in the world. The secret sauce is PubNub, a realtime data stream network that allows for super fast bi-directional communication between devices.
+
+Controlling the drone over the internet offers several advantages. First, the drone is no longer limited by WiFi range! Normally this kind of drone needs a WiFi connection or even a radio signal to function, but if we attach a hotspot on top of it, it can fly anywhere there's cell service. Take that FAA!
+
+Next, it allows us to get instant feedback from the drone on a dashboard. We can log anything we want, from the acceleration to the process memory usage. Is the drone flying? Is it on the way to it's delivery? Has it delivered the package? Did it hit a tree? Answer all these questions and more!
+
+And finally (and most scary) is the ability to control swarms of drones! As PubNub supports many to many communication, we can issue one command to many drones at the same time. Take over the world!
 
 ![](http://www.takepart.com/sites/default/files/styles/landscape_main_image/public/tacocopter.jpg)
 
-# Background
+# Overview
 
 We'll be using the Parrot AR 2.0 drone. Normally the Parrot AR 2.0 is controlled over a WiFi connection from your phone. This is obviously limiting, as the drone can not fly out of WiFi range.
 
@@ -70,20 +76,81 @@ If at any time you want to reset your drone's behaviour, you can disconnect it's
 
 ![](http://i.imgur.com/q71H0eA.png)
 
-When you find a device that look like your drone, try to telnet into it. If it lets you in and shows your the busybox prompt, you're in!
+When you find a device that look like your drone, try to telnet into it. If it lets you in and shows your the busybox prompt, you're in! Otherwise, reset your drone and try again.
 
 ## Installing NodeJS on the Parrot AR 2.0
 
-Configure ```drone.js``` to use the IP address you defined in:
+Now it's time to install NodeJS on your drone. This is a little different than installing NodeJS on a regular machine. But what did you expect? This is a freakin flying linux box.
+
+There is a special NodeJS binary within this repository under ```/drone/bin/node```. It's special because it's been compiled especially for the drone's hardware specs. This binary is version 0.8.
+
+Also included within this repo is a directory called ```node_modules``` which you may be familiar with. This folder includes all the dependencies required to run drone.js, the process that will allow us to interact with the drone over the internet.
+
+There's one edit we need to make to ```drone.js```, and that's adding our own drone's IP address to the script.
+
+Around line 20 you'll see the following code:
 
 ```js
-node drone.js
+var client  = arDrone.createClient({
+  ip: '192.168.1.87'
+});
 ```
 
-Then you can use the PubNub Console to send commands like "takeoff", "left", "rotate". Kill the ```drone.js``` process locally to land the drone.
+Replace ```192.168.1.87``` with the IP address from the previous step.
 
-## Future Plans	
+Now, Using your favorite FTP client (I like [FileZilla](https://filezilla-project.org/)), create an FTP connection to your drone.
 
-Eventually we'll do this:
+Once you've FTP'd in, navigate to the ```/data/video``` directory. Then, copy the contents of ```/drone``` into this directory.
 
-https://github.com/TooTallNate/ar-drone-socket.io-proxy
+Then, in your telnet session, run the following commands:
+
+```
+cd /data/video
+./bin/node -v
+```
+
+You should see an output like:
+
+```
+v0.8.x
+```
+
+Congrats! NodeJS is running on your drone.
+
+## Controlling your drone over the internet
+
+Let's run the NodeJS script. In your telnet session, run the following command:
+
+```js
+./bin/node --expose_gc drone.js
+```
+
+You should see the text:
+
+```
+Garbage collection enabled
+[...]
+[...]
+```
+
+The ```--expose_gc``` enables garbage collection within the NodeJs process. This is essential because with NodeJS running, the AR Drone only has about 3% memory left!
+
+Now, on your computer, load ```index.html``` from inside the dashboard.
+
+You should see some basic output in the graphs like the battery level and free memory percentage.
+
+![](http://i.imgur.com/GvElVyR.gif)
+
+## Controlling the Drone via the EON Interface
+
+The interface is built off of EON, PubNub's open source realtie charting library. This is how we're publishing the information from the drone, over the internet, and into our graph.
+
+You may still be on the same network as your drone, but since we're using PubNub, you don't nessesarily need to be. Your drone can be controlled from anywher in the world. Even better, if you attach a hotspot on top of the drone, you'll be able to control it as long as it has cell service!
+
+You can use the dropdown on the right side to select commands to build a mission for the drone. All the commands are relatie of the drone's camera; so foward means it will go in the direction of the camera. The "tricks" dropdown is where most of the fun is :)
+
+When your mission is ready to go, click "send commands" and the command will be sent to the drone. If the drone recieves the commands, they will appear on the queue below. When the command is in progress, it will turn blue. When the command is complete, it will turn green. 
+
+![](http://i.imgur.com/BqXdvzX.gif)
+
+Enjoy playing around with your drone! This project was inspired by [TooTallNate's Socket.io Drone Proxy](https://github.com/TooTallNate/ar-drone-socket.io-proxy) and uses [ardrone-autonomy](https://github.com/eschnou/ardrone-autonomy) to create missions.

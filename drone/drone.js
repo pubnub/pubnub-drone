@@ -1,5 +1,11 @@
+// telnet 192.168.1.1
+
 // killall udhcpd; iwconfig ath0 mode managed essid drone; /sbin/udhcpc -i ath0; sleep 5; route add default gw 192.168.1.1;
-// ./bin/node --expose_gc drone.js
+// ./bin/node --expose_gc auto.js
+
+// follow this
+// https://github.com/daraosn/ardrone-wpa2/issues/1
+// http://www.msh-tools.com/ardrone/ARDrone_Developer_Guide.pdf
 
 function navdata_option_mask(c) {
   return 1 << c;
@@ -12,6 +18,7 @@ var os = require('os');
 
 var client  = arDrone.createClient({
   ip: '192.168.1.87'
+  // imageSize: 1000 * 30
 });
 
 // From the SDK.
@@ -276,6 +283,8 @@ var handleData = function(droneData) {
 
 client.on('navdata', handleData);
 
+// https://github.com/TooTallNate/ar-drone-socket.io-proxy/blob/master/receiver.js
+// DEBUG - run with `--expose_gc`
 if ('function' == typeof gc) {
 
   console.log('Garbage Collection Enabled')
