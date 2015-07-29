@@ -1,5 +1,4 @@
 // telnet 192.168.1.1
-// network name is dronefi
 
 // killall udhcpd; iwconfig ath0 mode managed essid drone; /sbin/udhcpc -i ath0; sleep 5; route add default gw 192.168.1.1;
 // ./bin/node --expose_gc auto.js
