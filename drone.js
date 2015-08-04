@@ -113,25 +113,18 @@ setInterval(function() {
     inProgress = true;
     activeStep = queue[0];
 
-    console.log('performing step:');
-    console.log(activeStep);
-
     activeStep.inProgress = true;
 
     publishStep(activeStep);
 
-    console.log(activeStep.name)
-
     if(activeStep.name == "takeoff") {
-
-      console.log('taking off')
 
       client.takeoff(function(){
 
         if(firstRun) {
           ctrl.zero();
-          // firstRun = false;
-        }      
+        }
+
         done();
 
       });
@@ -247,8 +240,6 @@ var handleData = function(droneData) {
   mem.freePercent = mem.freemem / mem.totalmem * 100;
 
   if(droneData) {
-
-    // console.log('!!!!! publishing')
 
     pubnub.publish({                                  
       channel: "pubnub_drone_stream",
